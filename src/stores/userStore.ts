@@ -1,0 +1,48 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+export type UserRole = 'admin' | 'team_lead' | 'analyst';
+
+interface UserState {
+  userId: string | null;
+  email: string | null;
+  name: string | null;
+  role: UserRole;
+  teamId: string | null;
+  credits: number;
+  avatarUrl: string | null;
+  
+  // Actions
+  setUser: (user: Partial<UserState>) => void;
+  updateCredits: (credits: number) => void;
+  clearUser: () => void;
+}
+
+export const useUserStore = create<UserState>()(
+  persist(
+    (set) => ({
+      userId: 'user-123',
+      email: 'alex@company.com',
+      name: 'Alex Morgan',
+      role: 'admin',
+      teamId: 'team-456',
+      credits: 2450,
+      avatarUrl: null,
+      
+      setUser: (user) => set((state) => ({ ...state, ...user })),
+      updateCredits: (credits) => set({ credits }),
+      clearUser: () => set({
+        userId: null,
+        email: null,
+        name: null,
+        role: 'analyst',
+        teamId: null,
+        credits: 0,
+        avatarUrl: null,
+      }),
+    }),
+    {
+      name: 'user-storage',
+    }
+  )
+);
