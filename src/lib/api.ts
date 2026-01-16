@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '@/config/api';
+import { createApiError } from '@/lib/api-errors';
 
 // API response wrapper type
 interface ApiResponse<T> {
@@ -19,7 +20,7 @@ async function apiCall<T>(
   const { userId, ...fetchOptions } = options;
   
   if (!userId) {
-    throw new Error('User not authenticated');
+    throw createApiError(new Error('User not authenticated'));
   }
   
   const url = `${API_BASE_URL}${endpoint}`;
@@ -30,23 +31,33 @@ async function apiCall<T>(
     ...fetchOptions.headers,
   };
 
-  const response = await fetch(url, {
-    ...fetchOptions,
-    headers,
-  });
+  try {
+    const response = await fetch(url, {
+      ...fetchOptions,
+      headers,
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `API error: ${response.status} ${response.statusText}`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw createApiError(
+        new Error(errorData.error || `API error: ${response.status} ${response.statusText}`)
+      );
+    }
+
+    const json: ApiResponse<T> = await response.json();
+    
+    if (!json.success) {
+      throw createApiError(new Error(json.error || 'API request failed'));
+    }
+
+    return json.data;
+  } catch (error) {
+    // Re-throw if already formatted, otherwise format it
+    if (error instanceof Error && error.name === 'ApiError') {
+      throw error;
+    }
+    throw createApiError(error);
   }
-
-  const json: ApiResponse<T> = await response.json();
-  
-  if (!json.success) {
-    throw new Error(json.error || 'API request failed');
-  }
-
-  return json.data;
 }
 
 // Analysis types
