@@ -1,8 +1,4 @@
 import { API_BASE_URL } from '@/config/api';
-import { useUserStore } from '@/stores/userStore';
-
-// Get userId from store (for use outside React components)
-const getUserId = () => useUserStore.getState().userId;
 
 // API response wrapper type
 interface ApiResponse<T> {
@@ -11,23 +7,31 @@ interface ApiResponse<T> {
   error?: string;
 }
 
+interface ApiCallOptions extends RequestInit {
+  userId?: string | null;
+}
+
 // Generic API call function
 async function apiCall<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: ApiCallOptions = {}
 ): Promise<T> {
-  const userId = getUserId();
+  const { userId, ...fetchOptions } = options;
+  
+  if (!userId) {
+    throw new Error('User not authenticated');
+  }
   
   const url = `${API_BASE_URL}${endpoint}`;
   
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    ...(userId && { 'X-User-Id': userId }),
-    ...options.headers,
+    'X-User-Id': userId,
+    ...fetchOptions.headers,
   };
 
   const response = await fetch(url, {
-    ...options,
+    ...fetchOptions,
     headers,
   });
 
@@ -84,11 +88,11 @@ export interface Preset {
   createdAt: string;
 }
 
-// API methods
-export const api = {
+// Helper to create API methods with userId
+const createApi = (userId: string) => ({
   // Presets
   listPresets: () => 
-    apiCall<Preset[]>('/api/presets'),
+    apiCall<Preset[]>('/api/presets', { userId }),
 
   // Analyses
   listAnalyses: (limit = 10, offset = 0, status?: string) => {
@@ -97,46 +101,51 @@ export const api = {
       offset: String(offset) 
     });
     if (status) params.append('status', status);
-    return apiCall<{ analyses: Analysis[]; total: number }>(`/api/analyses?${params}`);
+    return apiCall<{ analyses: Analysis[]; total: number }>(`/api/analyses?${params}`, { userId });
   },
 
   getAnalysis: (id: string) => 
-    apiCall<Analysis>(`/api/analyses/${id}`),
+    apiCall<Analysis>(`/api/analyses/${id}`, { userId }),
 
   createAnalysis: (data: Partial<Analysis>) => 
     apiCall<Analysis>('/api/analyses', {
+      userId,
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
   updateAnalysis: (id: string, data: Partial<Analysis>) => 
     apiCall<Analysis>(`/api/analyses/${id}`, {
+      userId,
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
 
   deleteAnalysis: (id: string) => 
     apiCall<{ deleted: boolean }>(`/api/analyses/${id}`, {
+      userId,
       method: 'DELETE',
     }),
 
   startAnalysis: (id: string) => 
     apiCall<Analysis>(`/api/analyses/${id}/start`, {
+      userId,
       method: 'POST',
     }),
 
   getAnalysisModules: (id: string) => 
-    apiCall<AnalysisModule[]>(`/api/analyses/${id}/modules`),
+    apiCall<AnalysisModule[]>(`/api/analyses/${id}/modules`, { userId }),
 
   // HITL Checkpoints
   listCheckpoints: () => 
-    apiCall<Checkpoint[]>('/api/hitl'),
+    apiCall<Checkpoint[]>('/api/hitl', { userId }),
 
   resolveCheckpoint: (id: string, data: { decision: string; notes?: string }) => 
     apiCall<Checkpoint>(`/api/hitl/${id}/resolve`, {
+      userId,
       method: 'POST',
       body: JSON.stringify(data),
     }),
-};
+});
 
-export { apiCall };
+export { apiCall, createApi };
