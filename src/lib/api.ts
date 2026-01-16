@@ -94,6 +94,29 @@ const createApi = (userId: string) => ({
   listPresets: () => 
     apiCall<Preset[]>('/api/presets', { userId }),
 
+  getPreset: (id: string) => 
+    apiCall<Preset>(`/api/presets/${id}`, { userId }),
+
+  createPreset: (data: Partial<Preset>) => 
+    apiCall<Preset>('/api/presets', {
+      userId,
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updatePreset: (id: string, data: Partial<Preset>) => 
+    apiCall<Preset>(`/api/presets/${id}`, {
+      userId,
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  deletePreset: (id: string) => 
+    apiCall<{ deleted: boolean }>(`/api/presets/${id}`, {
+      userId,
+      method: 'DELETE',
+    }),
+
   // Analyses
   listAnalyses: (limit = 10, offset = 0, status?: string) => {
     const params = new URLSearchParams({ 
