@@ -15,6 +15,7 @@ import { Team } from '@/pages/Team';
 import { Admin } from '@/pages/Admin';
 import { Help } from '@/pages/Help';
 import NotFound from '@/pages/NotFound';
+import TestPage from '@/pages/TestPage';
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/team" element={<Team />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/help" element={<Help />} />
+              <Route path="/test" element={<TestPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
