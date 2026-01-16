@@ -163,7 +163,11 @@ const createApi = (userId: string) => ({
   listCheckpoints: () => 
     apiCall<Checkpoint[]>('/api/hitl', { userId }),
 
-  resolveCheckpoint: (id: string, data: { decision: string; notes?: string }) => 
+  resolveCheckpoint: (id: string, data: { 
+    action: 'approve_all' | 'request_revision' | 'reject';
+    comment?: string;
+    adjustments?: Record<string, unknown>;
+  }) => 
     apiCall<Checkpoint>(`/api/hitl/${id}/resolve`, {
       userId,
       method: 'POST',
