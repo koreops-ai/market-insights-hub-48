@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useThemeStore } from '@/stores/themeStore';
 import { MainLayout } from '@/components/layout/MainLayout';
+import { ApiConnectionProvider } from '@/contexts/ApiConnectionContext';
 import { Dashboard } from '@/pages/Dashboard';
 import { NewAnalysis } from '@/pages/NewAnalysis';
 import { Reports } from '@/pages/Reports';
@@ -31,23 +32,25 @@ function ThemeInitializer() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <ThemeInitializer />
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/new-analysis" element={<NewAnalysis />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/presets" element={<Presets />} />
-            <Route path="/team" element={<Team />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/help" element={<Help />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <ApiConnectionProvider>
+        <ThemeInitializer />
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/new-analysis" element={<NewAnalysis />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/presets" element={<Presets />} />
+              <Route path="/team" element={<Team />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/help" element={<Help />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </ApiConnectionProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

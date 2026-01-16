@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { ApiStatusIndicator } from '@/components/ApiStatusIndicator';
 import { cn } from '@/lib/utils';
 
 export function Header() {
@@ -41,6 +42,9 @@ export function Header() {
 
         {/* Right side actions */}
         <div className="flex items-center gap-3">
+          {/* API Status */}
+          <ApiStatusIndicator />
+
           {/* Credits Display */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border">
             <CreditCard className="w-4 h-4 text-primary" />
