@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { 
   BarChart3, 
   Clock, 
@@ -16,7 +15,9 @@ import {
   PanelRightOpen,
   Plus,
   FileText,
-  ChevronDown
+  ChevronDown,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,99 +38,20 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useUserStore } from '@/stores/userStore';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-
-// Types
-interface Analysis {
-  id: string;
-  name: string;
-  status: 'draft' | 'running' | 'hitl_pending' | 'completed' | 'failed';
-  progress: number;
-  createdAt: string;
-}
-
-interface HITLNotification {
-  id: string;
-  analysisId: string;
-  analysisName: string;
-  checkpoint: string;
-  createdAt: string;
-}
-
-interface Stats {
-  activeAnalyses: number;
-  pendingHITL: number;
-  completedThisMonth: number;
-  creditsRemaining: number;
-}
-
-interface Preset {
-  id: string;
-  name: string;
-}
-
-// Mock data
-const mockAnalyses: Analysis[] = [
-  { id: '1', name: 'E-commerce Platform Analysis', status: 'completed', progress: 100, createdAt: '2024-01-15T10:30:00Z' },
-  { id: '2', name: 'SaaS Market Entry Strategy', status: 'running', progress: 67, createdAt: '2024-01-15T09:15:00Z' },
-  { id: '3', name: 'Healthcare App Validation', status: 'hitl_pending', progress: 45, createdAt: '2024-01-14T16:20:00Z' },
-  { id: '4', name: 'FinTech Competitor Analysis', status: 'completed', progress: 100, createdAt: '2024-01-14T11:00:00Z' },
-  { id: '5', name: 'EdTech Market Research', status: 'draft', progress: 0, createdAt: '2024-01-13T14:45:00Z' },
-  { id: '6', name: 'Real Estate Platform Study', status: 'failed', progress: 23, createdAt: '2024-01-12T08:30:00Z' },
-  { id: '7', name: 'Food Delivery App Analysis', status: 'completed', progress: 100, createdAt: '2024-01-11T12:00:00Z' },
-  { id: '8', name: 'Fitness App Market Fit', status: 'running', progress: 82, createdAt: '2024-01-10T15:30:00Z' },
-  { id: '9', name: 'Travel Platform Validation', status: 'completed', progress: 100, createdAt: '2024-01-09T09:00:00Z' },
-  { id: '10', name: 'Gaming Industry Analysis', status: 'hitl_pending', progress: 55, createdAt: '2024-01-08T17:15:00Z' },
-  { id: '11', name: 'AI Tools Market Study', status: 'completed', progress: 100, createdAt: '2024-01-07T10:45:00Z' },
-  { id: '12', name: 'Crypto Exchange Analysis', status: 'draft', progress: 0, createdAt: '2024-01-06T13:20:00Z' },
-];
-
-const mockHITLNotifications: HITLNotification[] = [
-  { id: '1', analysisId: '3', analysisName: 'Healthcare App Validation', checkpoint: 'Market Size Review', createdAt: '2024-01-15T08:30:00Z' },
-  { id: '2', analysisId: '10', analysisName: 'Gaming Industry Analysis', checkpoint: 'Competitor Validation', createdAt: '2024-01-14T16:45:00Z' },
-  { id: '3', analysisId: '8', analysisName: 'Fitness App Market Fit', checkpoint: 'Pricing Strategy', createdAt: '2024-01-14T11:20:00Z' },
-];
-
-const mockPresets: Preset[] = [
-  { id: '1', name: 'Quick Market Scan' },
-  { id: '2', name: 'Full Competitor Analysis' },
-  { id: '3', name: 'Startup Validation' },
-  { id: '4', name: 'Enterprise Assessment' },
-];
-
-const mockStats: Stats = {
-  activeAnalyses: 3,
-  pendingHITL: 2,
-  completedThisMonth: 12,
-  creditsRemaining: 85,
-};
-
-// Fetch functions (mock implementations)
-const fetchAnalyses = async (page: number): Promise<{ data: Analysis[]; total: number }> => {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  const start = (page - 1) * 10;
-  return {
-    data: mockAnalyses.slice(start, start + 10),
-    total: mockAnalyses.length,
-  };
-};
-
-const fetchStats = async (): Promise<Stats> => {
-  await new Promise(resolve => setTimeout(resolve, 300));
-  return mockStats;
-};
-
-const fetchHITLNotifications = async (): Promise<HITLNotification[]> => {
-  await new Promise(resolve => setTimeout(resolve, 400));
-  return mockHITLNotifications;
-};
+import { useAnalyses, useDeleteAnalysis, useStartAnalysis } from '@/hooks/useAnalyses';
+import { useCheckpoints } from '@/hooks/useHITL';
+import { usePresets } from '@/hooks/usePresets';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { formatApiError } from '@/lib/api-errors';
 
 // Status badge config
 const statusConfig = {
   draft: { label: 'Draft', variant: 'secondary' as const, className: 'bg-muted text-muted-foreground' },
   running: { label: 'Running', variant: 'default' as const, className: 'bg-primary/20 text-primary animate-pulse' },
+  paused: { label: 'Paused', variant: 'secondary' as const, className: 'bg-muted text-muted-foreground' },
   hitl_pending: { label: 'HITL Pending', variant: 'default' as const, className: 'bg-warning/20 text-warning' },
   completed: { label: 'Completed', variant: 'default' as const, className: 'bg-success/20 text-success' },
   failed: { label: 'Failed', variant: 'destructive' as const, className: 'bg-destructive/20 text-destructive' },
@@ -150,32 +72,55 @@ function AnimatedNumber({ value }: { value: number }) {
 }
 
 export function Dashboard() {
+  const navigate = useNavigate();
   const { name, credits } = useUserStore();
   const [currentPage, setCurrentPage] = useState(1);
   const [isNotificationsPanelOpen, setIsNotificationsPanelOpen] = useState(true);
+  const itemsPerPage = 10;
 
-  // Queries
-  const { data: statsData, isLoading: statsLoading } = useQuery({
-    queryKey: ['stats'],
-    queryFn: fetchStats,
-    refetchInterval: 30000,
-  });
+  // API Queries
+  const { 
+    data: analysesData, 
+    isLoading: analysesLoading, 
+    isError: analysesError,
+    error: analysesErrorDetails,
+    refetch: refetchAnalyses 
+  } = useAnalyses(itemsPerPage, (currentPage - 1) * itemsPerPage);
 
-  const { data: analysesData, isLoading: analysesLoading } = useQuery({
-    queryKey: ['analyses', currentPage],
-    queryFn: () => fetchAnalyses(currentPage),
-    refetchInterval: 30000,
-  });
+  const { data: checkpoints } = useCheckpoints();
+  const { data: presets } = usePresets();
 
-  const { data: hitlNotifications } = useQuery({
-    queryKey: ['hitl-notifications'],
-    queryFn: fetchHITLNotifications,
-    refetchInterval: 30000,
-  });
+  // Mutations
+  const deleteAnalysis = useDeleteAnalysis();
+  const startAnalysis = useStartAnalysis();
 
-  const stats = statsData || mockStats;
-  const analyses = analysesData?.data || [];
-  const totalPages = Math.ceil((analysesData?.total || 0) / 10);
+  // Derived data
+  const analyses = analysesData?.analyses || [];
+  const totalItems = analysesData?.total || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  // Calculate stats from analyses
+  const stats = {
+    activeAnalyses: analyses.filter(a => a.status === 'running').length,
+    pendingHITL: checkpoints?.filter(c => c.status === 'pending').length || 0,
+    completedThisMonth: analyses.filter(a => {
+      if (a.status !== 'completed') return false;
+      const completedDate = new Date(a.updatedAt);
+      const now = new Date();
+      return completedDate.getMonth() === now.getMonth() && 
+             completedDate.getFullYear() === now.getFullYear();
+    }).length,
+    creditsRemaining: credits,
+  };
+
+  // HITL notifications from checkpoints
+  const hitlNotifications = checkpoints?.filter(c => c.status === 'pending').map(c => ({
+    id: c.id,
+    analysisId: c.analysisId,
+    analysisName: c.analysisName,
+    checkpoint: c.type,
+    createdAt: c.createdAt,
+  })) || [];
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -192,6 +137,20 @@ export function Dashboard() {
     if (diffHours < 1) return 'Just now';
     if (diffHours < 24) return `${diffHours}h ago`;
     return `${diffDays}d ago`;
+  };
+
+  const handleViewAnalysis = (id: string) => {
+    navigate(`/reports/${id}`);
+  };
+
+  const handleStartAnalysis = (id: string) => {
+    startAnalysis.mutate(id);
+  };
+
+  const handleDeleteAnalysis = (id: string) => {
+    if (confirm('Are you sure you want to delete this analysis?')) {
+      deleteAnalysis.mutate(id);
+    }
   };
 
   return (
@@ -331,11 +290,15 @@ export function Dashboard() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              {mockPresets.map((preset) => (
-                <DropdownMenuItem key={preset.id}>
-                  {preset.name}
-                </DropdownMenuItem>
-              ))}
+              {presets && presets.length > 0 ? (
+                presets.map((preset) => (
+                  <DropdownMenuItem key={preset.id}>
+                    {preset.name}
+                  </DropdownMenuItem>
+                ))
+              ) : (
+                <DropdownMenuItem disabled>No presets available</DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -349,13 +312,34 @@ export function Dashboard() {
 
         {/* Recent Analyses Table */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Recent Analyses</CardTitle>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => refetchAnalyses()}
+              disabled={analysesLoading}
+            >
+              <RefreshCw className={cn("w-4 h-4 mr-2", analysesLoading && "animate-spin")} />
+              Refresh
+            </Button>
           </CardHeader>
           <CardContent>
             {analysesLoading ? (
               <div className="flex items-center justify-center h-48">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <LoadingSpinner size="lg" text="Loading analyses..." />
+              </div>
+            ) : analysesError ? (
+              <div className="flex flex-col items-center justify-center h-48 text-center">
+                <AlertCircle className="w-12 h-12 text-destructive/50 mb-4" />
+                <p className="text-destructive mb-2">Failed to load analyses</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {formatApiError(analysesErrorDetails)}
+                </p>
+                <Button onClick={() => refetchAnalyses()} variant="outline">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Try Again
+                </Button>
               </div>
             ) : analyses.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-center">
@@ -381,11 +365,15 @@ export function Dashboard() {
                   </TableHeader>
                   <TableBody>
                     {analyses.map((analysis) => (
-                      <TableRow key={analysis.id}>
+                      <TableRow 
+                        key={analysis.id} 
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleViewAnalysis(analysis.id)}
+                      >
                         <TableCell className="font-medium">{analysis.name}</TableCell>
                         <TableCell>
-                          <Badge className={statusConfig[analysis.status].className}>
-                            {statusConfig[analysis.status].label}
+                          <Badge className={statusConfig[analysis.status]?.className || 'bg-muted'}>
+                            {statusConfig[analysis.status]?.label || analysis.status}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -400,17 +388,34 @@ export function Dashboard() {
                           {formatDate(analysis.createdAt)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => handleViewAnalysis(analysis.id)}
+                            >
                               <Eye className="w-4 h-4" />
                             </Button>
-                            {(analysis.status === 'hitl_pending' || analysis.status === 'draft') && (
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                            {(analysis.status === 'hitl_pending' || analysis.status === 'draft' || analysis.status === 'paused') && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => handleStartAnalysis(analysis.id)}
+                                disabled={startAnalysis.isPending}
+                              >
                                 <Play className="w-4 h-4" />
                               </Button>
                             )}
                             {analysis.status === 'draft' && (
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                onClick={() => handleDeleteAnalysis(analysis.id)}
+                                disabled={deleteAnalysis.isPending}
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             )}
@@ -425,7 +430,7 @@ export function Dashboard() {
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between mt-4">
                     <p className="text-sm text-muted-foreground">
-                      Page {currentPage} of {totalPages}
+                      Page {currentPage} of {totalPages} ({totalItems} total)
                     </p>
                     <div className="flex items-center gap-2">
                       <Button
@@ -468,9 +473,9 @@ export function Dashboard() {
                 <div className="flex items-center gap-2">
                   <Bell className="w-4 h-4 text-warning" />
                   <CardTitle className="text-base">HITL Requests</CardTitle>
-                  {(hitlNotifications?.length || 0) > 0 && (
+                  {hitlNotifications.length > 0 && (
                     <Badge variant="secondary" className="bg-warning/20 text-warning">
-                      {hitlNotifications?.length}
+                      {hitlNotifications.length}
                     </Badge>
                   )}
                 </div>
@@ -484,7 +489,7 @@ export function Dashboard() {
                 </Button>
               </CardHeader>
               <CardContent className="space-y-3">
-                {hitlNotifications && hitlNotifications.length > 0 ? (
+                {hitlNotifications.length > 0 ? (
                   hitlNotifications.map((notification) => (
                     <Link
                       key={notification.id}
