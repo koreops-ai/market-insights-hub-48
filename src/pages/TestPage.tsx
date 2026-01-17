@@ -25,6 +25,13 @@ const TestPage = () => {
     message: 'Not tested yet',
   });
   const [isTestingApi, setIsTestingApi] = useState(false);
+  const [chatResult, setChatResult] = useState<TestResult>({
+    name: 'Chat API Call',
+    status: 'pending',
+    message: 'Not tested yet',
+  });
+  const [isTestingChat, setIsTestingChat] = useState(false);
+  const [chatPreview, setChatPreview] = useState<string>('');
 
   const testDirectApi = async () => {
     if (!userId) {
@@ -65,6 +72,52 @@ const TestPage = () => {
     }
   };
 
+  const testChatApi = async () => {
+    if (!userId) {
+      setChatResult({
+        name: 'Chat API Call',
+        status: 'error',
+        message: 'No userId available',
+      });
+      return;
+    }
+
+    setIsTestingChat(true);
+    setChatResult({
+      name: 'Chat API Call',
+      status: 'pending',
+      message: 'Testing...',
+    });
+
+    try {
+      const api = createApi(userId);
+      const result = await api.chatJsonBlocks({
+        model_provider: 'anthropic',
+        messages: [
+          { role: 'user', content: 'Summarize the Singapore fintech market in 3 bullets.' },
+        ],
+      });
+
+      console.log('Chat API result:', result);
+      setChatPreview(JSON.stringify(result.blocks?.slice(0, 3) || [], null, 2));
+      setChatResult({
+        name: 'Chat API Call',
+        status: 'success',
+        message: `Success! Got ${result.blocks?.length ?? 0} blocks`,
+      });
+    } catch (error) {
+      const errorMessage = formatApiError(error);
+      console.error('Chat API error:', error);
+      setChatResult({
+        name: 'Chat API Call',
+        status: 'error',
+        message: errorMessage,
+      });
+    } finally {
+      setIsTestingChat(false);
+    }
+  };
+
   const getStatusIcon = (status: 'pending' | 'success' | 'error') => {
     switch (status) {
       case 'success':
@@ -101,6 +154,7 @@ const TestPage = () => {
         : `Found ${analysesData?.analyses?.length ?? 0} analyses (total: ${analysesData?.total ?? 0})`,
     },
     directApiResult,
+    chatResult,
   ];
 
   // Log results to console
@@ -164,6 +218,29 @@ const TestPage = () => {
                 'Test api.listPresets() Directly'
               )}
             </Button>
+          </div>
+
+          <div className="pt-4 border-t">
+            <Button
+              onClick={testChatApi}
+              disabled={isTestingChat || !userId}
+              className="w-full"
+              variant="outline"
+            >
+              {isTestingChat ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Testing Chat API...
+                </>
+              ) : (
+                'Test /api/chat (JSON blocks)'
+              )}
+            </Button>
+            {chatPreview && (
+              <pre className="mt-3 text-xs bg-muted p-3 rounded-lg overflow-auto max-h-48">
+                {chatPreview}
+              </pre>
+            )}
           </div>
 
           <div className="pt-4 border-t">

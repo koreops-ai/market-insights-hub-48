@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '@/config/api';
 import { createApiError } from '@/lib/api-errors';
+import type { ChatRequest, JsonBlocksResponse } from '@/types/blocks';
 
 // API response wrapper type
 interface ApiResponse<T> {
@@ -172,17 +173,28 @@ const createApi = (userId: string) => ({
 
   // HITL Checkpoints
   listCheckpoints: () => 
-    apiCall<Checkpoint[]>('/api/hitl', { userId }),
+    apiCall<Checkpoint[]>('/api/hitl/checkpoints', { userId }),
 
   resolveCheckpoint: (id: string, data: { 
     action: 'approve_all' | 'request_revision' | 'reject';
     comment?: string;
     adjustments?: Record<string, unknown>;
   }) => 
-    apiCall<Checkpoint>(`/api/hitl/${id}/resolve`, {
+    apiCall<Checkpoint>(`/api/hitl/checkpoints/${id}/resolve`, {
       userId,
       method: 'POST',
       body: JSON.stringify(data),
+    }),
+
+  // Multi-model chat (JSON blocks)
+  chatJsonBlocks: (data: Omit<ChatRequest, 'output_format'>) =>
+    apiCall<JsonBlocksResponse>('/api/chat', {
+      userId,
+      method: 'POST',
+      body: JSON.stringify({
+        ...data,
+        output_format: 'json_blocks',
+      }),
     }),
 });
 

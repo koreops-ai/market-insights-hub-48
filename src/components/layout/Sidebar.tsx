@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebarStore } from '@/stores/sidebarStore';
@@ -30,6 +31,7 @@ const navItems: NavItem[] = [
   { label: 'New Analysis', icon: PlusCircle, href: '/new-analysis' },
   { label: 'My Reports', icon: FileText, href: '/reports' },
   { label: 'Presets', icon: Bookmark, href: '/presets' },
+  { label: 'Research', icon: MessageSquare, href: '/research' },
   { label: 'Team', icon: Users, href: '/team', roles: ['admin', 'team_lead'] },
   { label: 'Admin', icon: Settings, href: '/admin', roles: ['admin'] },
   { label: 'Help', icon: HelpCircle, href: '/help' },
