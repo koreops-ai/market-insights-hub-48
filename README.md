@@ -4,6 +4,10 @@
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
 
+## One‑Click Checklist
+
+See `CHECKLIST_NEXT_SESSION.md` for the next‑session checklist.
+
 ## How can I edit this code?
 
 There are several ways of editing your application.
