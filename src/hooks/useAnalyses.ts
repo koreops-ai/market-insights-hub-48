@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createApi, Analysis } from '@/lib/api';
+import { createApi, Analysis, CreateAnalysisInput } from '@/lib/api';
 import { useAuth } from './useAuth';
 
 // Hook to get authenticated API client
@@ -47,7 +47,7 @@ export function useCreateAnalysis() {
   const { userId } = useAuth();
   
   return useMutation({
-    mutationFn: async (data: Partial<Analysis>) => {
+    mutationFn: async (data: CreateAnalysisInput) => {
       if (!userId) throw new Error('User not authenticated');
       const api = createApi(userId);
       return api.createAnalysis(data);
@@ -108,5 +108,37 @@ export function useStartAnalysis() {
       queryClient.invalidateQueries({ queryKey: ['analyses'] });
       queryClient.invalidateQueries({ queryKey: ['analysis', id] });
     },
+  });
+}
+
+// Query: Get modules for an analysis
+export function useAnalysisModules(id: string) {
+  const { userId } = useAuth();
+
+  return useQuery({
+    queryKey: ['analysis-modules', id],
+    queryFn: async () => {
+      if (!userId) throw new Error('User not authenticated');
+      const api = createApi(userId);
+      const response = await api.getAnalysisModules(id);
+      return response.modules;
+    },
+    enabled: !!userId && !!id,
+  });
+}
+
+// Query: Get global synthesis summary
+export function useAnalysisSummary(id: string) {
+  const { userId } = useAuth();
+
+  return useQuery({
+    queryKey: ['analysis-summary', id],
+    queryFn: async () => {
+      if (!userId) throw new Error('User not authenticated');
+      const api = createApi(userId);
+      const response = await api.getAnalysisSummary(id);
+      return response.summary;
+    },
+    enabled: !!userId && !!id,
   });
 }

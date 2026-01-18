@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Download, Eye, Trash2, FileText } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,55 +13,20 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-
-const reports = [
-  {
-    id: '1',
-    name: 'E-commerce Platform Analysis',
-    type: 'Full Validation',
-    date: '2024-01-15',
-    status: 'completed',
-    score: 85,
-  },
-  {
-    id: '2',
-    name: 'SaaS Market Entry Strategy',
-    type: 'Market Size',
-    date: '2024-01-14',
-    status: 'completed',
-    score: 72,
-  },
-  {
-    id: '3',
-    name: 'Healthcare App Validation',
-    type: 'Competitor Analysis',
-    date: '2024-01-13',
-    status: 'in-progress',
-    score: null,
-  },
-  {
-    id: '4',
-    name: 'FinTech Competitor Analysis',
-    type: 'Full Validation',
-    date: '2024-01-12',
-    status: 'completed',
-    score: 91,
-  },
-  {
-    id: '5',
-    name: 'EdTech Growth Opportunity',
-    type: 'Growth Opportunity',
-    date: '2024-01-10',
-    status: 'completed',
-    score: 68,
-  },
-];
+import { useAnalyses } from '@/hooks/useAnalyses';
 
 export function Reports() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const { data: analysesData, isLoading } = useAnalyses(50, 0);
 
-  const filteredReports = reports.filter((report) =>
-    report.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const reports = analysesData?.analyses || [];
+  const filteredReports = useMemo(
+    () =>
+      reports.filter((report) =>
+        report.name.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    [reports, searchQuery]
   );
 
   return (
@@ -96,14 +62,16 @@ export function Reports() {
           </div>
         </CardHeader>
         <CardContent>
+          {isLoading && (
+            <div className="text-sm text-muted-foreground">Loading reports...</div>
+          )}
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Report Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Date</TableHead>
+                <TableHead>Report</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Score</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Progress</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -115,47 +83,32 @@ export function Reports() {
                       <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                         <FileText className="w-4 h-4 text-primary" />
                       </div>
-                      <span className="font-medium">{report.name}</span>
+                      <div>
+                        <div className="font-medium">{report.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {report.company_name}
+                        </div>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{report.type}</Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {new Date(report.date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        report.status === 'completed' ? 'default' : 'outline'
-                      }
-                      className={
-                        report.status === 'completed'
-                          ? 'bg-success/10 text-success border-success/20'
-                          : 'bg-warning/10 text-warning border-warning/20'
-                      }
-                    >
-                      {report.status === 'completed' ? 'Completed' : 'In Progress'}
+                    <Badge variant={report.status === 'completed' ? 'default' : 'secondary'}>
+                      {report.status}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {new Date(report.created_at).toLocaleDateString()}
+                  </TableCell>
                   <TableCell>
-                    {report.score !== null ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-12 h-2 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full"
-                            style={{ width: `${report.score}%` }}
-                          />
-                        </div>
-                        <span className="text-sm font-medium">{report.score}</span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
+                    <span className="text-sm font-medium">{report.progress}%</span>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate(`/reports/${report.id}`)}
+                      >
                         <Eye className="w-4 h-4" />
                       </Button>
                       <Button variant="ghost" size="icon">

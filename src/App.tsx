@@ -10,6 +10,7 @@ import { ApiConnectionProvider } from '@/contexts/ApiConnectionContext';
 import { Dashboard } from '@/pages/Dashboard';
 import { NewAnalysis } from '@/pages/NewAnalysis';
 import { Reports } from '@/pages/Reports';
+import { ReportDetail } from '@/pages/ReportDetail';
 import { Presets } from '@/pages/Presets';
 import { Team } from '@/pages/Team';
 import { Admin } from '@/pages/Admin';
@@ -41,9 +42,11 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route element={<MainLayout />}>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<NewAnalysis />} />
               <Route path="/new-analysis" element={<NewAnalysis />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/reports" element={<Reports />} />
+              <Route path="/reports/:id" element={<ReportDetail />} />
               <Route path="/presets" element={<Presets />} />
               <Route path="/team" element={<Team />} />
               <Route path="/admin" element={<Admin />} />

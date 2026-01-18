@@ -1,6 +1,7 @@
 import { API_BASE_URL } from '@/config/api';
 import { createApiError } from '@/lib/api-errors';
 import type { ChatRequest, JsonBlocksResponse } from '@/types/blocks';
+import type { ModuleType, SocialPlatform } from '@/types/api';
 
 // API response wrapper type
 interface ApiResponse<T> {
@@ -64,22 +65,35 @@ async function apiCall<T>(
 // Analysis types
 export interface Analysis {
   id: string;
+  user_id: string;
   name: string;
-  status: 'draft' | 'running' | 'hitl_pending' | 'completed' | 'failed' | 'paused';
+  company_name: string;
+  product_name: string | null;
+  description: string | null;
+  target_market: string | null;
+  status: 'draft' | 'running' | 'hitl_pending' | 'completed' | 'failed' | 'cancelled';
   progress: number;
-  createdAt: string;
-  updatedAt: string;
-  type: string;
-  description?: string;
-  targetMarket?: string;
-  competitors?: string;
+  selected_modules: ModuleType[];
+  social_platforms: SocialPlatform[] | null;
+  preset_id: string | null;
+  estimated_cost: number;
+  actual_cost: number;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
 }
 
 export interface AnalysisModule {
   id: string;
-  name: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  analysis_id: string;
+  module_type: ModuleType;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'hitl_pending' | 'approved' | 'revision_requested' | 'skipped';
   progress: number;
+  started_at: string | null;
+  completed_at: string | null;
+  cost: number;
+  data: Record<string, unknown> | null;
+  error: string | null;
 }
 
 export interface Checkpoint {
@@ -98,6 +112,17 @@ export interface Preset {
   description: string;
   config: Record<string, unknown>;
   createdAt: string;
+}
+
+export interface CreateAnalysisInput {
+  name: string;
+  company_name: string;
+  product_name?: string;
+  description?: string;
+  target_market?: string;
+  selected_modules: ModuleType[];
+  social_platforms?: SocialPlatform[];
+  preset_id?: string;
 }
 
 // Helper to create API methods with userId
@@ -142,8 +167,25 @@ const createApi = (userId: string) => ({
   getAnalysis: (id: string) => 
     apiCall<Analysis>(`/api/analyses/${id}`, { userId }),
 
-  createAnalysis: (data: Partial<Analysis>) => 
+  createAnalysis: (data: CreateAnalysisInput) => 
     apiCall<Analysis>('/api/analyses', {
+      userId,
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  suggestModules: (data: {
+    decision_question?: string;
+    company_name: string;
+    product_name?: string;
+    description?: string;
+    target_market?: string;
+  }) =>
+    apiCall<{
+      recommended_modules: string[];
+      recommended_social_platforms?: string[];
+      rationale: string;
+    }>('/api/analyses/suggest-modules', {
       userId,
       method: 'POST',
       body: JSON.stringify(data),
@@ -169,7 +211,10 @@ const createApi = (userId: string) => ({
     }),
 
   getAnalysisModules: (id: string) => 
-    apiCall<AnalysisModule[]>(`/api/analyses/${id}/modules`, { userId }),
+    apiCall<{ modules: AnalysisModule[] }>(`/api/analyses/${id}/modules`, { userId }),
+
+  getAnalysisSummary: (id: string) =>
+    apiCall<{ summary: Record<string, unknown> | null }>(`/api/analyses/${id}/summary`, { userId }),
 
   // HITL Checkpoints
   listCheckpoints: () => 

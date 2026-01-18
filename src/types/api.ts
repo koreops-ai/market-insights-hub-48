@@ -36,19 +36,24 @@ export type HITLStatus =
 
 // Module types
 export type ModuleType = 
-  | 'market_size' 
-  | 'competitor_analysis' 
-  | 'growth_opportunity' 
+  | 'market_demand' 
+  | 'revenue_intelligence' 
+  | 'competitive_intelligence' 
   | 'social_sentiment' 
-  | 'pricing_analysis';
+  | 'linkedin_contacts'
+  | 'google_maps'
+  | 'financial_modeling' 
+  | 'risk_assessment' 
+  | 'operational_feasibility';
 
 // Social platforms
 export type SocialPlatform = 
-  | 'twitter' 
-  | 'linkedin' 
+  | 'amazon_reviews' 
   | 'reddit' 
-  | 'youtube' 
-  | 'instagram';
+  | 'twitter' 
+  | 'trustpilot' 
+  | 'quora' 
+  | 'youtube';
 
 // Analysis entity
 export type Analysis = {
