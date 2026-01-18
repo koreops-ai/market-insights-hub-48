@@ -21,11 +21,11 @@ interface UserState {
 export const useUserStore = create<UserState>()(
   persist(
     (set) => ({
-      userId: 'user-123',
+      userId: '550e8400-e29b-41d4-a716-446655440000',
       email: 'alex@company.com',
       name: 'Alex Morgan',
       role: 'admin',
-      teamId: 'team-456',
+      teamId: null,
       credits: 2450,
       avatarUrl: null,
       
