@@ -71,13 +71,18 @@ export interface Analysis {
   product_name: string | null;
   description: string | null;
   target_market: string | null;
+  industry: string | null;
+  target_markets: string[] | null;
+  website_url: string | null;
   status: 'draft' | 'running' | 'hitl_pending' | 'completed' | 'failed' | 'cancelled';
   progress: number;
-  selected_modules: ModuleType[];
+  current_module: string | null;
+  modules: ModuleType[];
   social_platforms: SocialPlatform[] | null;
-  preset_id: string | null;
-  estimated_cost: number;
-  actual_cost: number;
+  credits_estimated: number;
+  credits_used: number;
+  error_message: string | null;
+  started_at: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -215,6 +220,18 @@ const createApi = (userId: string) => ({
 
   getAnalysisSummary: (id: string) =>
     apiCall<{ summary: Record<string, unknown> | null }>(`/api/analyses/${id}/summary`, { userId }),
+
+  // Activity logs for an analysis (uses stream endpoint with mode=rest)
+  getActivityLogs: (analysisId: string) =>
+    apiCall<Array<{
+      id: string;
+      analysis_id: string;
+      module_type: string | null;
+      activity_type: string;
+      message: string;
+      metadata: Record<string, unknown> | null;
+      created_at: string;
+    }>>(`/api/analyses/${analysisId}/stream?mode=rest`, { userId }),
 
   // HITL Checkpoints
   listCheckpoints: () => 
