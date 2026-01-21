@@ -10,8 +10,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from './useAuth';
 import { createApi } from '@/lib/api';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+import { API_BASE_URL } from '@/config/api';
 
 export type ActivityType =
   | 'search'
