@@ -144,7 +144,12 @@ export function Dashboard() {
   };
 
   const handleStartAnalysis = (id: string) => {
-    startAnalysis.mutate(id);
+    startAnalysis.mutate(id, {
+      onSuccess: () => {
+        // Navigate to the report page to see live activity stream
+        navigate(`/reports/${id}`);
+      },
+    });
   };
 
   const handleDeleteAnalysis = (id: string) => {

@@ -1,11 +1,41 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createApi, Checkpoint } from '@/lib/api';
 import { useAuth } from './useAuth';
+import { supabase } from '@/lib/supabase';
 
-// Query: List pending checkpoints
+// Query: List pending checkpoints with real-time updates
 export function useCheckpoints() {
   const { userId } = useAuth();
-  
+  const queryClient = useQueryClient();
+
+  // Subscribe to real-time checkpoint changes
+  useEffect(() => {
+    if (!userId || !supabase) return;
+
+    const channel = supabase
+      .channel('hitl-checkpoints')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'checkpoints',
+        },
+        () => {
+          // Invalidate and refetch checkpoints when any change occurs
+          queryClient.invalidateQueries({ queryKey: ['checkpoints'] });
+          // Also refresh analyses as status may have changed
+          queryClient.invalidateQueries({ queryKey: ['analyses'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, queryClient]);
+
   return useQuery({
     queryKey: ['checkpoints'],
     queryFn: async () => {
